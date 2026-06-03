@@ -20,7 +20,7 @@ export const authenticate = (
 		const payload = verifyAccessToken(token)
 
 		const user: UserContext = {
-			id: payload.userId,
+			id: typeof payload.userId === 'string' ? Number(payload.userId) : payload.userId,
 			role: payload.role,
 			username: payload.username,
 			email: payload.email,

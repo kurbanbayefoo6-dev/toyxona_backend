@@ -6,7 +6,7 @@ import type { UserRole } from '../types/user-context'
 export type { UserRole } from '../types/user-context'
 
 export interface JwtPayload {
-	userId: number
+	userId: number | string
 	role: UserRole
 	username: string
 	email: string
@@ -28,7 +28,7 @@ const isJwtPayload = (decoded: jwt.JwtPayload | string): decoded is JwtPayload =
 	}
 
 	return (
-		typeof decoded.userId === 'number' &&
+		(typeof decoded.userId === 'number' || typeof decoded.userId === 'string') &&
 		typeof decoded.role === 'string' &&
 		(decoded.role === 'admin' ||
 			decoded.role === 'owner' ||
