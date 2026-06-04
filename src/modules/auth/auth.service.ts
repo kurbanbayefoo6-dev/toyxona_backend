@@ -1,7 +1,7 @@
 import { AppError } from '../../middleware/error.middleware'
 import { comparePassword, hashPassword } from '../../utils/bcrypt'
 import { signAccessToken } from '../../utils/jwt'
-import { generateOtpCode, generateOtpExpiry } from '../../utils/otp'
+import { generateOtpExpiry } from '../../utils/otp'
 import { AuthRepository } from './auth.repository'
 import {
 	AuthSuccessPayload,
@@ -17,6 +17,9 @@ import {
 	VerifyOtpRequestBody,
 } from './auth.types'
 import crypto from 'crypto'
+
+// Demo/testing: OTP delivery is not finalized, so use a fixed code.
+const DEMO_OTP_CODE = '111111'
 
 export class AuthService {
 	constructor(private readonly authRepository: AuthRepository) {}
@@ -45,16 +48,18 @@ export class AuthService {
 			otpCode: payload.otpCode,
 		})
 
-		// Development fallback: allow 123456 in non-production
+		// Demo fixed code is always accepted; 123456 dev fallback kept for non-prod.
 		const isDevelopment = process.env.NODE_ENV !== 'production'
+		const isDemoCode = payload.otpCode === DEMO_OTP_CODE
 		const isFallbackCode = isDevelopment && payload.otpCode === '123456'
+		const isAccepted = isDemoCode || isFallbackCode
 
 		const otpRecord = await this.authRepository.findValidOtpByEmail(
 			payload.email,
 			payload.otpCode,
 		)
 
-		if (!otpRecord && !isFallbackCode) {
+		if (!otpRecord && !isAccepted) {
 			console.log('[OTP] Invalid or expired OTP')
 			throw new AppError('Invalid or expired OTP', 400)
 		}
@@ -64,8 +69,8 @@ export class AuthService {
 			throw new AppError('User not found', 404)
 		}
 
-		if (!isFallbackCode) {
-			await this.authRepository.markOtpUsed(otpRecord!.id)
+		if (otpRecord) {
+			await this.authRepository.markOtpUsed(otpRecord.id)
 		}
 		await this.authRepository.markUserVerified(user.id)
 
@@ -107,7 +112,7 @@ export class AuthService {
 
 		await this.authRepository.invalidateOtpByEmail(payload.email)
 
-		const otpCode = generateOtpCode()
+		const otpCode = DEMO_OTP_CODE
 		const expiresAt = generateOtpExpiry()
 
 		console.log('[OTP] Generated new OTP:', {
@@ -257,7 +262,7 @@ export class AuthService {
 			role,
 		)
 
-		const otpCode = generateOtpCode()
+		const otpCode = DEMO_OTP_CODE
 		const expiresAt = generateOtpExpiry()
 
 		console.log('[OTP] Generated OTP for registration:', {
