@@ -18,6 +18,16 @@ if (!resendApiKey) {
 	console.warn('RESEND_API_KEY is not configured. Email sending will fail.')
 }
 
+const DEFAULT_EMAIL_FROM = 'Toyxona <onboarding@resend.dev>'
+const emailFrom = process.env.EMAIL_FROM || DEFAULT_EMAIL_FROM
+
+if (!process.env.EMAIL_FROM) {
+	console.warn(
+		`EMAIL_FROM is not configured. Falling back to '${DEFAULT_EMAIL_FROM}'. ` +
+			'onboarding@resend.dev only delivers to the Resend account owner; set EMAIL_FROM to a verified domain sender for production delivery.',
+	)
+}
+
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
 export const sendEmail = async (options: EmailOptions): Promise<{ success: boolean; error?: string; data?: unknown }> => {
@@ -29,19 +39,42 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
 	try {
 		console.log('[EMAIL] Sending email:', {
 			to: options.to,
+			from: emailFrom,
 			subject: options.subject,
 		})
-		const result = await resend.emails.send({
-			from: 'Toyxona <onboarding@resend.dev>',
+		const { data, error } = await resend.emails.send({
+			from: emailFrom,
 			to: options.to,
 			subject: options.subject,
 			text: options.text || '',
 			html: options.html || undefined,
 		})
-		console.log('[EMAIL] Email sent successfully:', result)
-		return { success: true, data: result }
+
+		if (error) {
+			console.error('[EMAIL] Resend returned an error:', {
+				to: options.to,
+				from: emailFrom,
+				subject: options.subject,
+				errorName: error.name,
+				errorMessage: error.message,
+			})
+			return { success: false, error: error.message, data: { error } }
+		}
+
+		console.log('[EMAIL] Email sent successfully:', {
+			to: options.to,
+			from: emailFrom,
+			subject: options.subject,
+			resendId: data?.id,
+		})
+		return { success: true, data }
 	} catch (error) {
-		console.error('[EMAIL] Failed to send email:', error)
+		console.error('[EMAIL] Failed to send email:', {
+			to: options.to,
+			from: emailFrom,
+			subject: options.subject,
+			error,
+		})
 		return { success: false, error: error instanceof Error ? error.message : 'Failed to send email' }
 	}
 }
