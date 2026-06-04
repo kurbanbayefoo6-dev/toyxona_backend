@@ -13,9 +13,14 @@ export interface SendOtpEmailOptions {
 }
 
 const resendApiKey = process.env.RESEND_API_KEY
+const emailFrom = process.env.EMAIL_FROM || 'Toyxona <onboarding@resend.dev>'
 
 if (!resendApiKey) {
 	console.warn('RESEND_API_KEY is not configured. Email sending will fail.')
+}
+
+if (!process.env.EMAIL_FROM) {
+	console.warn('EMAIL_FROM is not configured. Using default sender: onboarding@resend.dev')
 }
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null
@@ -29,19 +34,31 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
 	try {
 		console.log('[EMAIL] Sending email:', {
 			to: options.to,
+			from: emailFrom,
 			subject: options.subject,
 		})
 		const result = await resend.emails.send({
-			from: 'Toyxona <onboarding@resend.dev>',
+			from: emailFrom,
 			to: options.to,
 			subject: options.subject,
 			text: options.text || '',
 			html: options.html || undefined,
 		})
-		console.log('[EMAIL] Email sent successfully:', result)
+		console.log('[EMAIL] Email sent successfully:', {
+			to: options.to,
+			from: emailFrom,
+			subject: options.subject,
+			response: result,
+		})
 		return { success: true, data: result }
 	} catch (error) {
-		console.error('[EMAIL] Failed to send email:', error)
+		console.error('[EMAIL] Failed to send email:', {
+			to: options.to,
+			from: emailFrom,
+			subject: options.subject,
+			error: error instanceof Error ? error.message : 'Unknown error',
+			errorDetails: error,
+		})
 		return { success: false, error: error instanceof Error ? error.message : 'Failed to send email' }
 	}
 }
