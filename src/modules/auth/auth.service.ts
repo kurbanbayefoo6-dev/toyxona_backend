@@ -2,7 +2,6 @@ import { AppError } from '../../middleware/error.middleware'
 import { comparePassword, hashPassword } from '../../utils/bcrypt'
 import { signAccessToken } from '../../utils/jwt'
 import { generateOtpCode, generateOtpExpiry } from '../../utils/otp'
-import { sendOtpEmail, sendPasswordResetEmail } from '../../utils/email'
 import { AuthRepository } from './auth.repository'
 import {
 	AuthSuccessPayload,
@@ -92,7 +91,7 @@ export class AuthService {
 
 	public async resendOtp(
 		payload: ResendOtpRequestBody,
-	): Promise<{ otpCode: string; emailSent: boolean; emailError?: string }> {
+	): Promise<{ email: string; otpCode: string }> {
 		if (!payload.email) {
 			throw new AppError('Email is required', 400)
 		}
@@ -124,13 +123,7 @@ export class AuthService {
 			expiresAt,
 		)
 
-		const emailResult = await sendOtpEmail({ email: payload.email, otpCode })
-
-		if (!emailResult.success) {
-			console.error('[OTP] Failed to send OTP email:', emailResult.error)
-		}
-
-		return { otpCode, emailSent: emailResult.success, emailError: emailResult.error }
+		return { email: payload.email, otpCode }
 	}
 
 	public async login(payload: LoginRequestBody): Promise<AuthSuccessPayload> {
@@ -176,7 +169,7 @@ export class AuthService {
 
 	public async forgotPassword(
 		payload: ForgotPasswordRequestBody,
-	): Promise<{ message: string; resetToken: string; emailSent: boolean; emailError?: string }> {
+	): Promise<{ message: string; resetToken: string }> {
 		if (!payload.email) {
 			throw new AppError('Email is required', 400)
 		}
@@ -203,17 +196,9 @@ export class AuthService {
 			expiresAt,
 		)
 
-		const emailResult = await sendPasswordResetEmail(user.email, resetToken)
-
-		if (!emailResult.success) {
-			console.error('[PASSWORD RESET] Failed to send email:', emailResult.error)
-		}
-
 		return {
 			message: 'Password reset token generated',
 			resetToken,
-			emailSent: emailResult.success,
-			emailError: emailResult.error,
 		}
 	}
 
@@ -288,20 +273,10 @@ export class AuthService {
 			expiresAt,
 		)
 
-		const emailResult = await sendOtpEmail({ email: createdUser.email, otpCode })
-
-		if (!emailResult.success) {
-			console.error('[OTP] Failed to send OTP email:', emailResult.error)
-		}
-
-		// Return OTP in response only in non-production
-		const isDevelopment = process.env.NODE_ENV !== 'production'
-
 		return {
 			user: this.toSafeUser(createdUser),
-			otpCode: isDevelopment ? otpCode : undefined,
-			emailSent: emailResult.success,
-			emailError: emailResult.error,
+			email: createdUser.email,
+			otpCode,
 		}
 	}
 
