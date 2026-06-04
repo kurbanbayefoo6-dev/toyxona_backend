@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { coerceId, idsEqual } from '../../utils/coerceId'
 import { BookingsRepository } from '../bookings/bookings.repository'
 import { PaymentsRepository } from './payments.repository'
 import { CreatePaymentRequestBody, PaymentListFilters } from './payments.types'
@@ -10,7 +11,7 @@ export class PaymentsService {
 	) {}
 
 	public async createPayment(
-		userId: number,
+		rawUserId: number,
 		role: 'admin' | 'owner' | 'customer',
 		payload: CreatePaymentRequestBody,
 	): Promise<{
@@ -19,26 +20,33 @@ export class PaymentsService {
 		amount: number
 		message: string
 	}> {
+		const userId = coerceId(rawUserId)
+		if (!userId) {
+			throw new AppError('Unauthorized', 401)
+		}
+
 		if (role !== 'customer') {
 			throw new AppError('Only customers can create payments', 403)
 		}
-		if (!payload.bookingId || !payload.paymentType) {
+		const bookingId = coerceId(payload.bookingId)
+		if (!bookingId || !payload.paymentType) {
 			throw new AppError('bookingId and paymentType are required', 400)
 		}
 
-		const booking = await this.paymentsRepository.findBookingById(
-			payload.bookingId,
-		)
+		const booking = await this.paymentsRepository.findBookingById(bookingId)
 		if (!booking) {
 			throw new AppError('Booking not found', 404)
 		}
-		if (booking.customer_id !== userId) {
-			throw new AppError('Forbidden', 403)
+		if (!idsEqual(booking.customer_id, userId)) {
+			throw new AppError(
+				'You can only pay for your own bookings',
+				403,
+			)
 		}
 
 		if (payload.paymentType === 'advance') {
 			const advancePaid = await this.paymentsRepository.hasPaidPayment(
-				payload.bookingId,
+				bookingId,
 				'advance',
 			)
 			if (advancePaid) {
@@ -46,9 +54,8 @@ export class PaymentsService {
 			}
 		}
 
-		const alreadyPaid = await this.paymentsRepository.countPaidAmountForBooking(
-			payload.bookingId,
-		)
+		const alreadyPaid =
+			await this.paymentsRepository.countPaidAmountForBooking(bookingId)
 		const amount =
 			payload.paymentType === 'advance'
 				? booking.advance_amount
@@ -67,7 +74,7 @@ export class PaymentsService {
 
 		const transactionId = this.generateTransactionId()
 		await this.paymentsRepository.createPaymentRecord({
-			bookingId: payload.bookingId,
+			bookingId,
 			transactionId,
 			amount,
 			paymentType: payload.paymentType,

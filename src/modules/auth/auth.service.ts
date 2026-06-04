@@ -1,5 +1,6 @@
 import { AppError } from '../../middleware/error.middleware'
 import { comparePassword, hashPassword } from '../../utils/bcrypt'
+import { coerceId } from '../../utils/coerceId'
 import { signAccessToken } from '../../utils/jwt'
 import { generateOtpExpiry } from '../../utils/otp'
 import { AuthRepository } from './auth.repository'
@@ -80,7 +81,7 @@ export class AuthService {
 		}
 
 		const accessToken = signAccessToken({
-			userId: verifiedUser.id,
+			userId: coerceId(verifiedUser.id),
 			role: verifiedUser.role,
 			username: verifiedUser.username,
 			email: verifiedUser.email,
@@ -156,7 +157,7 @@ export class AuthService {
 		}
 
 		const accessToken = signAccessToken({
-			userId: user.id,
+			userId: coerceId(user.id),
 			role: user.role,
 			username: user.username,
 			email: user.email,

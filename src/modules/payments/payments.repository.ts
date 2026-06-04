@@ -1,6 +1,7 @@
 import { QueryResult } from 'pg'
 
 import { pool } from '../../config/db'
+import { coerceId } from '../../utils/coerceId'
 import {
 	PaymentEntity,
 	PaymentListFilters,
@@ -29,7 +30,18 @@ export class PaymentsRepository {
 			'SELECT id, venue_id, customer_id, booking_date, total_price, advance_amount, status FROM bookings WHERE id = $1 LIMIT 1',
 			[bookingId],
 		)
-		return result.rows[0] || null
+		const row = result.rows[0]
+		if (!row) return null
+
+		return {
+			id: coerceId(row.id),
+			venue_id: coerceId(row.venue_id),
+			customer_id: coerceId(row.customer_id),
+			booking_date: row.booking_date,
+			total_price: Number(row.total_price),
+			advance_amount: Number(row.advance_amount),
+			status: row.status,
+		}
 	}
 
 	public async hasPaidPayment(

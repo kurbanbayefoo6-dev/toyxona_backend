@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { mapToSafeVenue } from '../venues/venues.mapper'
 import { VenuesRepository } from '../venues/venues.repository'
 import { FavoritesRepository } from './favorites.repository'
 import { FavoriteEntity, SafeFavorite } from './favorites.types'
@@ -32,7 +33,7 @@ export class FavoritesService {
 			userId,
 			venueId,
 		)
-		return this.toSafe(favorite)
+		return this.toSafe(favorite, null)
 	}
 
 	public async removeFavorite(
@@ -52,15 +53,45 @@ export class FavoritesService {
 
 	public async getUserFavorites(userId: number): Promise<SafeFavorite[]> {
 		const favorites = await this.favoritesRepository.getUserFavorites(userId)
-		return favorites.map(fav => this.toSafe(fav))
+		if (favorites.length === 0) {
+			return []
+		}
+
+		const venueIds = [...new Set(favorites.map(fav => fav.venue_id))]
+		const imagesByVenueId =
+			await this.venuesRepository.getVenueImagesByVenueIds(venueIds)
+
+		return Promise.all(
+			favorites.map(async favorite => {
+				const venue = await this.venuesRepository.findById(favorite.venue_id)
+				const safeVenue = venue
+					? mapToSafeVenue(
+							venue,
+							imagesByVenueId.get(venue.id) ?? [],
+						)
+					: null
+
+				return {
+					id: favorite.id,
+					userId: favorite.user_id,
+					venueId: favorite.venue_id,
+					createdAt: favorite.created_at,
+					venue: safeVenue,
+				}
+			}),
+		)
 	}
 
-	private toSafe(favorite: FavoriteEntity): SafeFavorite {
+	private toSafe(
+		favorite: FavoriteEntity,
+		venue: SafeFavorite['venue'] = null,
+	): SafeFavorite {
 		return {
 			id: favorite.id,
 			userId: favorite.user_id,
 			venueId: favorite.venue_id,
 			createdAt: favorite.created_at,
+			venue,
 		}
 	}
 }

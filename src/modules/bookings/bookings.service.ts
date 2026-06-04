@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { coerceId, idsEqual } from '../../utils/coerceId'
 import { CarsRepository } from '../cars/cars.repository'
 import { KarnaySurnayRepository } from '../karnay-surnay/karnay-surnay.repository'
 import { SingersRepository } from '../singers/singers.repository'
@@ -33,7 +34,8 @@ export class BookingsService {
 
 		this.validateCreatePayload(payload)
 
-		const venue = await this.venuesRepository.findById(payload.venueId)
+		const venueId = coerceId(payload.venueId)
+		const venue = await this.venuesRepository.findById(venueId)
 		if (!venue) {
 			throw new AppError('Venue not found', 404)
 		}
@@ -48,19 +50,19 @@ export class BookingsService {
 		const singers =
 			singerIds.length > 0
 				? await this.singersRepository
-						.listByVenueIds([payload.venueId])
+						.listByVenueIds([venueId])
 						.then(items => items.filter(item => singerIds.includes(item.id)))
 				: []
 		const cars =
 			carIds.length > 0
 				? await this.carsRepository
-						.listByVenueIds([payload.venueId])
+						.listByVenueIds([venueId])
 						.then(items => items.filter(item => carIds.includes(item.id)))
 				: []
 		const karnayItems =
 			karnaySurnayIds.length > 0
 				? await this.karnaySurnayRepository
-						.listByVenueIds([payload.venueId])
+						.listByVenueIds([venueId])
 						.then(items =>
 							items.filter(item => karnaySurnayIds.includes(item.id)),
 						)
@@ -84,7 +86,7 @@ export class BookingsService {
 		const advanceAmount = Number((totalPrice * 0.2).toFixed(2))
 
 		const booking = await this.bookingsRepository.createBooking(customerId, {
-			venueId: payload.venueId,
+			venueId,
 			bookingDate: payload.bookingDate,
 			guestCount: payload.guestCount,
 			totalPrice,
@@ -121,13 +123,12 @@ export class BookingsService {
 		userId: number,
 		payload: UpdateBookingRequestBody,
 	): Promise<SafeBooking> {
-		if (!payload.bookingId || !payload.status) {
+		const bookingId = coerceId(payload.bookingId)
+		if (!bookingId || !payload.status) {
 			throw new AppError('Booking id and status are required', 400)
 		}
 
-		const booking = await this.bookingsRepository.findBookingById(
-			payload.bookingId,
-		)
+		const booking = await this.bookingsRepository.findBookingById(bookingId)
 		if (!booking) {
 			throw new AppError('Booking not found', 404)
 		}
@@ -137,19 +138,29 @@ export class BookingsService {
 			throw new AppError('Venue not found', 404)
 		}
 
-		if (userRole === 'customer' && booking.customer_id !== userId) {
+		if (userRole === 'customer' && !idsEqual(booking.customer_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
-		if (userRole === 'owner' && venue.owner_id !== userId) {
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 
 		if (userRole === 'customer' && payload.status !== 'cancelled') {
 			throw new AppError('Customers can only cancel bookings', 403)
 		}
+		if (userRole === 'owner' && payload.status !== 'cancelled') {
+			throw new AppError('Owners can only cancel bookings', 403)
+		}
+		if (userRole === 'admin' && payload.status !== 'cancelled') {
+			throw new AppError('Admins can only cancel bookings via status update', 400)
+		}
+
+		if (booking.status === 'cancelled') {
+			throw new AppError('Booking is already cancelled', 400)
+		}
 
 		const updated = await this.bookingsRepository.updateBookingStatus(
-			payload.bookingId,
+			bookingId,
 			payload.status,
 		)
 		if (!updated) {
@@ -166,19 +177,19 @@ export class BookingsService {
 		if (userRole !== 'admin') {
 			throw new AppError('Forbidden', 403)
 		}
-		if (!payload.bookingId) {
+		const bookingId = coerceId(payload.bookingId)
+		if (!bookingId) {
 			throw new AppError('Booking id is required', 400)
 		}
-		const deleted = await this.bookingsRepository.deleteBooking(
-			payload.bookingId,
-		)
+		const deleted = await this.bookingsRepository.deleteBooking(bookingId)
 		if (!deleted) {
 			throw new AppError('Booking not found', 404)
 		}
 	}
 
 	private validateCreatePayload(payload: CreateBookingRequestBody): void {
-		if (!payload.venueId || !payload.bookingDate || !payload.guestCount) {
+		const venueId = coerceId(payload.venueId)
+		if (!venueId || !payload.bookingDate || !payload.guestCount) {
 			throw new AppError(
 				'venueId, bookingDate and guestCount are required',
 				400,

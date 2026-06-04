@@ -1,6 +1,7 @@
 import path from 'path'
 
 import { AppError } from '../../middleware/error.middleware'
+import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
 import { VenuesRepository } from '../venues/venues.repository'
 import { VenueImagesRepository } from './venue-images.repository'
 import { SafeVenueImage, VenueImageEntity } from './venue-images.types'
@@ -96,7 +97,8 @@ export class VenueImagesService {
 		return {
 			id: image.id,
 			venueId: image.venue_id,
-			imageUrl: image.image_url,
+			imageUrl:
+				normalizeStoredImageUrl(image.image_url) ?? image.image_url,
 		}
 	}
 }

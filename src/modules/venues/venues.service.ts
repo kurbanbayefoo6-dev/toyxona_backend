@@ -1,4 +1,6 @@
 import { AppError } from '../../middleware/error.middleware'
+import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
+import { mapToSafeVenue } from './venues.mapper'
 import { VenuesRepository } from './venues.repository'
 import {
 	CreateVenueRequestBody,
@@ -6,7 +8,6 @@ import {
 	SafeVenue,
 	UpdateVenueRequestBody,
 	UpdateVenueStatusRequestBody,
-	SafeVenueImage,
 	VenueAvailabilityResponse,
 	VenueBookingCalendarResponse,
 	VenueEntity,
@@ -33,7 +34,7 @@ export class VenuesService {
 			assignedOwnerId,
 			payload,
 		)
-		return this.toSafeVenue(venue)
+		return mapToSafeVenue(venue)
 	}
 
 	public async getVenues(
@@ -55,7 +56,7 @@ export class VenuesService {
 
 		return {
 			items: result.items.map(item =>
-				this.toSafeVenue(item, imagesByVenueId.get(item.id) ?? []),
+				mapToSafeVenue(item, imagesByVenueId.get(item.id) ?? []),
 			),
 			total: result.total,
 			page,
@@ -189,12 +190,23 @@ export class VenuesService {
 		const cars = await this.venuesRepository.getVenueCars(venueId)
 		const karnaySurnay = await this.venuesRepository.getVenueKarnaySurnay(venueId)
 
+		const safeVenue = mapToSafeVenue(venue, images)
+
 		return {
-			venue: this.toSafeVenue(venue, images),
-			images,
-			singers,
-			menuItems,
-			cars,
+			venue: safeVenue,
+			images: safeVenue.images,
+			singers: singers.map(s => ({
+				...s,
+				imageUrl: normalizeStoredImageUrl(s.imageUrl),
+			})),
+			menuItems: menuItems.map(m => ({
+				...m,
+				imageUrl: normalizeStoredImageUrl(m.imageUrl),
+			})),
+			cars: cars.map(c => ({
+				...c,
+				imageUrl: normalizeStoredImageUrl(c.imageUrl),
+			})),
 			karnaySurnay,
 			availability,
 		}
@@ -260,30 +272,6 @@ export class VenuesService {
 
 	private async toSafeVenueWithImages(venue: VenueEntity): Promise<SafeVenue> {
 		const images = await this.venuesRepository.getVenueImages(venue.id)
-		return this.toSafeVenue(venue, images)
-	}
-
-	private toSafeVenue(
-		venue: VenueEntity,
-		images: SafeVenueImage[] = [],
-	): SafeVenue {
-		const imageUrl = images[0]?.imageUrl ?? null
-
-		return {
-			id: venue.id,
-			ownerId: venue.owner_id,
-			name: venue.name,
-			district: venue.district,
-			address: venue.address,
-			capacity: venue.capacity,
-			pricePerSeat: venue.price_per_seat,
-			phone: venue.phone,
-			status: venue.status,
-			createdAt: venue.created_at,
-			imageUrl,
-			coverImage: imageUrl,
-			image: imageUrl,
-			images,
-		}
+		return mapToSafeVenue(venue, images)
 	}
 }

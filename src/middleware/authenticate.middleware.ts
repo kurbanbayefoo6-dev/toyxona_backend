@@ -4,6 +4,7 @@ import { NextFunction, Request, Response } from 'express'
 
 import type { UserContext } from '../types/user-context'
 
+import { coerceId } from '../utils/coerceId'
 import { verifyAccessToken } from '../utils/jwt'
 
 import { AppError } from './error.middleware'
@@ -40,9 +41,14 @@ export const authenticate = (
 
 
 
+		const userId = coerceId(payload.userId)
+		if (!userId) {
+			throw new AppError('Invalid or expired token', 401)
+		}
+
 		const user: UserContext = {
 
-			id: Number(payload.userId),
+			id: userId,
 
 			role: payload.role,
 

@@ -5,9 +5,12 @@ export interface FavoriteEntity {
 	created_at: Date
 }
 
+import type { SafeVenue } from '../venues/venues.types'
+
 export interface SafeFavorite {
 	id: number
 	userId: number
 	venueId: number
 	createdAt: Date
+	venue: SafeVenue | null
 }

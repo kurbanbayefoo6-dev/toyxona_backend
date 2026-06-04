@@ -319,7 +319,7 @@ export class VenuesRepository {
 
 	public async getVenueImages(venueId: number): Promise<Array<{ id: number; imageUrl: string }>> {
 		const result = await pool.query<{ id: number; image_url: string }>(
-			'SELECT id, image_url FROM venue_images WHERE venue_id = $1',
+			'SELECT id, image_url FROM venue_images WHERE venue_id = $1 ORDER BY id DESC',
 			[venueId],
 		)
 		return result.rows.map(row => ({ id: row.id, imageUrl: row.image_url }))
@@ -338,7 +338,7 @@ export class VenuesRepository {
 			venue_id: number
 			image_url: string
 		}>(
-			'SELECT id, venue_id, image_url FROM venue_images WHERE venue_id = ANY($1::int[]) ORDER BY id DESC',
+			'SELECT id, venue_id, image_url FROM venue_images WHERE venue_id = ANY($1::int[]) ORDER BY venue_id, id DESC',
 			[venueIds],
 		)
 
