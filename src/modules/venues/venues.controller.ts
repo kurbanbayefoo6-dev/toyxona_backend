@@ -464,6 +464,15 @@ export class VenuesController {
 
 			limit: toNumber(query.limit),
 
+			sortBy: typeof query.sortBy === 'string' ? query.sortBy : undefined,
+
+			sortOrder:
+				query.sortOrder === 'asc'
+					? 'asc'
+					: query.sortOrder === 'desc'
+						? 'desc'
+						: undefined,
+
 		}
 
 	}
