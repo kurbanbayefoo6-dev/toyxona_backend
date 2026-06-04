@@ -1,8 +1,7 @@
 import { AppError } from '../../middleware/error.middleware'
 import { comparePassword, hashPassword } from '../../utils/bcrypt'
 import { signAccessToken } from '../../utils/jwt'
-import { generateOtpCode, generateOtpExpiry } from '../../utils/otp'
-import { sendOtpEmail, sendPasswordResetEmail } from '../../utils/email'
+import { generateOtpExpiry } from '../../utils/otp'
 import { AuthRepository } from './auth.repository'
 import {
 	AuthSuccessPayload,
@@ -18,6 +17,9 @@ import {
 	VerifyOtpRequestBody,
 } from './auth.types'
 import crypto from 'crypto'
+
+// Demo/testing: OTP delivery is not finalized, so use a fixed code.
+const DEMO_OTP_CODE = '111111'
 
 export class AuthService {
 	constructor(private readonly authRepository: AuthRepository) {}
@@ -46,16 +48,18 @@ export class AuthService {
 			otpCode: payload.otpCode,
 		})
 
-		// Development fallback: allow 123456 in non-production
+		// Demo fixed code is always accepted; 123456 dev fallback kept for non-prod.
 		const isDevelopment = process.env.NODE_ENV !== 'production'
+		const isDemoCode = payload.otpCode === DEMO_OTP_CODE
 		const isFallbackCode = isDevelopment && payload.otpCode === '123456'
+		const isAccepted = isDemoCode || isFallbackCode
 
 		const otpRecord = await this.authRepository.findValidOtpByEmail(
 			payload.email,
 			payload.otpCode,
 		)
 
-		if (!otpRecord && !isFallbackCode) {
+		if (!otpRecord && !isAccepted) {
 			console.log('[OTP] Invalid or expired OTP')
 			throw new AppError('Invalid or expired OTP', 400)
 		}
@@ -65,8 +69,8 @@ export class AuthService {
 			throw new AppError('User not found', 404)
 		}
 
-		if (!isFallbackCode) {
-			await this.authRepository.markOtpUsed(otpRecord!.id)
+		if (otpRecord) {
+			await this.authRepository.markOtpUsed(otpRecord.id)
 		}
 		await this.authRepository.markUserVerified(user.id)
 
@@ -92,7 +96,7 @@ export class AuthService {
 
 	public async resendOtp(
 		payload: ResendOtpRequestBody,
-	): Promise<{ otpCode: string; emailSent: boolean; emailError?: string }> {
+	): Promise<{ email: string; otpCode: string }> {
 		if (!payload.email) {
 			throw new AppError('Email is required', 400)
 		}
@@ -108,7 +112,7 @@ export class AuthService {
 
 		await this.authRepository.invalidateOtpByEmail(payload.email)
 
-		const otpCode = generateOtpCode()
+		const otpCode = DEMO_OTP_CODE
 		const expiresAt = generateOtpExpiry()
 
 		console.log('[OTP] Generated new OTP:', {
@@ -124,13 +128,7 @@ export class AuthService {
 			expiresAt,
 		)
 
-		const emailResult = await sendOtpEmail({ email: payload.email, otpCode })
-
-		if (!emailResult.success) {
-			console.error('[OTP] Failed to send OTP email:', emailResult.error)
-		}
-
-		return { otpCode, emailSent: emailResult.success, emailError: emailResult.error }
+		return { email: payload.email, otpCode }
 	}
 
 	public async login(payload: LoginRequestBody): Promise<AuthSuccessPayload> {
@@ -176,7 +174,7 @@ export class AuthService {
 
 	public async forgotPassword(
 		payload: ForgotPasswordRequestBody,
-	): Promise<{ message: string; resetToken: string; emailSent: boolean; emailError?: string }> {
+	): Promise<{ message: string; resetToken: string }> {
 		if (!payload.email) {
 			throw new AppError('Email is required', 400)
 		}
@@ -203,17 +201,9 @@ export class AuthService {
 			expiresAt,
 		)
 
-		const emailResult = await sendPasswordResetEmail(user.email, resetToken)
-
-		if (!emailResult.success) {
-			console.error('[PASSWORD RESET] Failed to send email:', emailResult.error)
-		}
-
 		return {
 			message: 'Password reset token generated',
 			resetToken,
-			emailSent: emailResult.success,
-			emailError: emailResult.error,
 		}
 	}
 
@@ -272,7 +262,7 @@ export class AuthService {
 			role,
 		)
 
-		const otpCode = generateOtpCode()
+		const otpCode = DEMO_OTP_CODE
 		const expiresAt = generateOtpExpiry()
 
 		console.log('[OTP] Generated OTP for registration:', {
@@ -288,20 +278,10 @@ export class AuthService {
 			expiresAt,
 		)
 
-		const emailResult = await sendOtpEmail({ email: createdUser.email, otpCode })
-
-		if (!emailResult.success) {
-			console.error('[OTP] Failed to send OTP email:', emailResult.error)
-		}
-
-		// Return OTP in response only in non-production
-		const isDevelopment = process.env.NODE_ENV !== 'production'
-
 		return {
 			user: this.toSafeUser(createdUser),
-			otpCode: isDevelopment ? otpCode : undefined,
-			emailSent: emailResult.success,
-			emailError: emailResult.error,
+			email: createdUser.email,
+			otpCode,
 		}
 	}
 
