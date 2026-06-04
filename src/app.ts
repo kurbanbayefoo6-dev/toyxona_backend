@@ -3,8 +3,9 @@ import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
-import { ensureUploadsDir, UPLOADS_DIR } from './config/uploads'
+import { ensureUploadsDir } from './config/uploads'
 import { AppError, errorMiddleware } from './middleware/error.middleware'
+import { createUploadsStatic } from './middleware/uploads-static.middleware'
 import adminRoutes from './modules/admin/admin.routes'
 import authRoutes from './modules/auth/auth.routes'
 import bookingsRoutes from './modules/bookings/bookings.routes'
@@ -36,9 +37,14 @@ if (process.env.NODE_ENV === 'production') {
 
 ensureUploadsDir()
 
+// Static uploads BEFORE helmet — embeddable from frontend origin (CORP cross-origin).
+app.use('/uploads', ...createUploadsStatic())
+
 app.use(
 	helmet({
-		crossOriginResourcePolicy: { policy: 'cross-origin' },
+		contentSecurityPolicy: false,
+		crossOriginResourcePolicy: false,
+		crossOriginEmbedderPolicy: false,
 	}),
 )
 app.use(
@@ -50,7 +56,6 @@ app.use(
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use('/uploads', express.static(UPLOADS_DIR))
 
 app.get('/health', (_req, res) => {
 	res.status(200).json({ success: true, message: 'API is running' })
