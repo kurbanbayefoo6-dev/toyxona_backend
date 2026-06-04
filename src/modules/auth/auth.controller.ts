@@ -99,7 +99,7 @@ export class AuthController {
 	): Promise<void> => {
 		try {
 			const result = await this.authService.forgotPassword(req.body)
-			sendSuccess(res, 200, result.message, { resetToken: result.resetToken })
+			sendSuccess(res, 200, result.message, result)
 		} catch (error) {
 			next(error)
 		}

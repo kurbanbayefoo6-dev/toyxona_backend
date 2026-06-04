@@ -65,7 +65,9 @@ export interface AuthSuccessPayload {
 
 export interface RegisterSuccessPayload {
 	user: SafeUser
-	otpCode: string
+	otpCode?: string
+	emailSent?: boolean
+	emailError?: string
 }
 
 export interface ForgotPasswordRequestBody {
