@@ -1,10 +1,9 @@
-import path from 'path'
-
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
+import { ensureUploadsDir, UPLOADS_DIR } from './config/uploads'
 import { AppError, errorMiddleware } from './middleware/error.middleware'
 import adminRoutes from './modules/admin/admin.routes'
 import authRoutes from './modules/auth/auth.routes'
@@ -35,7 +34,13 @@ if (process.env.NODE_ENV === 'production') {
 	app.set('trust proxy', 1)
 }
 
-app.use(helmet())
+ensureUploadsDir()
+
+app.use(
+	helmet({
+		crossOriginResourcePolicy: { policy: 'cross-origin' },
+	}),
+)
 app.use(
 	cors({
 		origin: corsOrigins(),
@@ -45,7 +50,7 @@ app.use(
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+app.use('/uploads', express.static(UPLOADS_DIR))
 
 app.get('/health', (_req, res) => {
 	res.status(200).json({ success: true, message: 'API is running' })

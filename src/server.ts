@@ -1,21 +1,16 @@
 import './types/express-request'
 
-import fs from 'fs'
-import path from 'path'
-
 import dotenv from 'dotenv'
 import app from './app'
 import { pool } from './config/db'
+import { ensureUploadsDir } from './config/uploads'
 
 dotenv.config()
 
 const PORT = Number(process.env.PORT || 5000)
 const HOST = process.env.HOST || '0.0.0.0'
 
-const uploadsDir = path.join(process.cwd(), 'uploads')
-if (!fs.existsSync(uploadsDir)) {
-	fs.mkdirSync(uploadsDir, { recursive: true })
-}
+ensureUploadsDir()
 
 async function start(): Promise<void> {
 	try {

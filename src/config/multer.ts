@@ -1,21 +1,17 @@
-import fs from 'fs'
+import multer from 'multer'
 import path from 'path'
 
-import multer from 'multer'
+import { ensureUploadsDir, UPLOADS_DIR } from './uploads'
 
-const uploadsDir = path.join(process.cwd(), 'uploads')
-
-if (!fs.existsSync(uploadsDir)) {
-	fs.mkdirSync(uploadsDir, { recursive: true })
-}
+ensureUploadsDir()
 
 const storage = multer.diskStorage({
 	destination: (_req, _file, cb) => {
-		cb(null, uploadsDir)
+		cb(null, UPLOADS_DIR)
 	},
 	filename: (_req, file, cb) => {
 		const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`
-		const extension = path.extname(file.originalname)
+		const extension = path.extname(file.originalname) || '.jpg'
 		cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`)
 	},
 })
@@ -32,4 +28,5 @@ const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
 export const upload = multer({
 	storage,
 	fileFilter,
+	limits: { fileSize: 10 * 1024 * 1024 },
 })

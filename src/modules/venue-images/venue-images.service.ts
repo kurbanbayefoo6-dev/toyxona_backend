@@ -1,6 +1,7 @@
-import path from 'path'
+import fs from 'fs/promises'
 
 import { AppError } from '../../middleware/error.middleware'
+import { resolveUploadFilePath, toPublicUploadPath } from '../../config/uploads'
 import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
 import { VenuesRepository } from '../venues/venues.repository'
 import { VenueImagesRepository } from './venue-images.repository'
@@ -31,7 +32,7 @@ export class VenueImagesService {
 			throw new AppError('Forbidden', 403)
 		}
 
-		const imageUrl = this.toPublicImagePath(file.path)
+		const imageUrl = toPublicUploadPath(file.path)
 		const image = await this.venueImagesRepository.create(venueId, imageUrl)
 		return this.toSafeImage(image)
 	}
@@ -81,16 +82,11 @@ export class VenueImagesService {
 		if (!deleted) {
 			throw new AppError('Image not found', 404)
 		}
-	}
 
-	private toPublicImagePath(filePath: string): string {
-		const normalized = filePath.split(path.sep).join('/')
-		const uploadsIndex = normalized.lastIndexOf('/uploads/')
-		if (uploadsIndex >= 0) {
-			return normalized.slice(uploadsIndex)
+		const filePath = resolveUploadFilePath(image.image_url)
+		if (filePath) {
+			await fs.unlink(filePath).catch(() => undefined)
 		}
-		const filename = normalized.split('/').pop() || normalized
-		return `/uploads/${filename}`
 	}
 
 	private toSafeImage(image: VenueImageEntity): SafeVenueImage {

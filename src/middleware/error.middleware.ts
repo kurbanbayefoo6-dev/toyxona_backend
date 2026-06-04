@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
+import multer from 'multer'
 
 interface ErrorResponse {
 	success: false
@@ -23,6 +24,26 @@ export const errorMiddleware = (
 ): void => {
 	if (error instanceof AppError) {
 		res.status(error.statusCode).json({
+			success: false,
+			message: error.message,
+		})
+		return
+	}
+
+	if (error instanceof multer.MulterError) {
+		const message =
+			error.code === 'LIMIT_FILE_SIZE'
+				? 'Image file is too large (max 10MB)'
+				: error.message
+		res.status(400).json({
+			success: false,
+			message,
+		})
+		return
+	}
+
+	if (error instanceof Error && error.message === 'Only image files are allowed') {
+		res.status(400).json({
 			success: false,
 			message: error.message,
 		})
