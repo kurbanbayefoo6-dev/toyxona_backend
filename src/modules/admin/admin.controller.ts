@@ -3,11 +3,16 @@ import { NextFunction, Request, Response } from 'express'
 import { AppError } from '../../middleware/error.middleware'
 import { sendSuccess } from '../../utils/response'
 import { getUserFromRequest } from '../../utils/request'
+import { UsersService } from '../users/users.service'
+import type { CreateUserByAdminRequestBody } from '../users/users.types'
 import { AdminService } from './admin.service'
 import { AdminQueryFilters } from './admin.types'
 
 export class AdminController {
-	constructor(private readonly adminService: AdminService) {}
+	constructor(
+		private readonly adminService: AdminService,
+		private readonly usersService: UsersService,
+	) {}
 
 	public dashboard = async (
 		req: Request,
@@ -57,6 +62,25 @@ export class AdminController {
 				this.parseFilters(req.query),
 			)
 			sendSuccess(res, 200, 'Owners fetched successfully', data)
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public createOwner = async (
+		req: Request<unknown, unknown, CreateUserByAdminRequestBody>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> => {
+		try {
+			const user = getUserFromRequest(req)
+			if (!user) throw new AppError('Unauthorized', 401)
+			const createdUser = await this.usersService.createByAdmin(user.role, {
+				...req.body,
+				role: 'owner',
+				isVerified: req.body.isVerified ?? true,
+			})
+			sendSuccess(res, 201, 'Owner created successfully', createdUser)
 		} catch (error) {
 			next(error)
 		}

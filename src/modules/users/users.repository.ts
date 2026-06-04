@@ -73,7 +73,7 @@ export class UsersRepository {
 				payload.lastName,
 				payload.username,
 				payload.email,
-				payload.phone ?? '',
+				payload.phone?.trim() ? payload.phone.trim() : null,
 				passwordHash,
 				payload.role,
 				payload.isVerified ?? true,
