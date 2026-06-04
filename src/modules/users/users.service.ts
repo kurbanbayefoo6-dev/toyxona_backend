@@ -66,11 +66,22 @@ export class UsersService {
 		if (existingUsername) throw new AppError('Username already exists', 409)
 
 		const passwordHash = await hashPassword(payload.password)
+		const phone = this.resolvePhoneForAdminCreate(payload)
 		const user = await this.usersRepository.createByAdmin(
-			payload,
+			{ ...payload, phone },
 			passwordHash,
 		)
 		return this.toSafeUser(user)
+	}
+
+	/** DB requires NOT NULL phone; admin owner form may omit it. */
+	private resolvePhoneForAdminCreate(
+		payload: CreateUserByAdminRequestBody,
+	): string {
+		const trimmed = payload.phone?.trim()
+		if (trimmed) return trimmed
+		const suffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`
+		return `+99890${suffix.slice(-9)}`
 	}
 
 	public async updateMe(
