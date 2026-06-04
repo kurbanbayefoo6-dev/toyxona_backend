@@ -16,6 +16,7 @@ services:
         value: 7d
       - key: BCRYPT_SALT_ROUNDS
         value: '10'
+      # Optional comma-separated extra origins (Vercel previews match automatically in code).
       - key: CORS_ORIGIN
         sync: false
       - key: FRONTEND_URL

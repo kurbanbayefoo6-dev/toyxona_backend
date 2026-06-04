@@ -3,6 +3,7 @@ import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
+import { corsOptions } from './config/cors'
 import { ensureUploadsDir } from './config/uploads'
 import { AppError, errorMiddleware } from './middleware/error.middleware'
 import { createUploadsStatic } from './middleware/uploads-static.middleware'
@@ -19,15 +20,6 @@ import singersRoutes from './modules/singers/singers.routes'
 import usersRoutes from './modules/users/users.routes'
 import venueImagesRoutes from './modules/venue-images/venue-images.routes'
 import venuesRoutes from './modules/venues/venues.routes'
-
-const corsOrigins = (): string[] | string => {
-	const origin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL
-	if (!origin) {
-		return '*'
-	}
-
-	return origin.split(',').map(value => value.trim()).filter(Boolean)
-}
 
 const app = express()
 
@@ -47,12 +39,7 @@ app.use(
 		crossOriginEmbedderPolicy: false,
 	}),
 )
-app.use(
-	cors({
-		origin: corsOrigins(),
-		credentials: true,
-	}),
-)
+app.use(cors(corsOptions))
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
