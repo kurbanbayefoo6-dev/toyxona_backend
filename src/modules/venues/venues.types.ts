@@ -57,6 +57,8 @@ export interface VenueFilters {
 	search?: string
 	page?: number
 	limit?: number
+	sortBy?: string
+	sortOrder?: 'asc' | 'desc'
 }
 
 export interface PaginatedVenuesResponse {
@@ -65,4 +67,29 @@ export interface PaginatedVenuesResponse {
 	page: number
 	limit: number
 	totalPages: number
+}
+
+export interface VenueAvailabilityResponse {
+	availableDates: string[]
+	bookedDates: string[]
+	pastDates: string[]
+}
+
+export interface VenueFullResponse {
+	venue: SafeVenue
+	images: Array<{ id: number; imageUrl: string }>
+	singers: Array<{ id: number; name: string; price: number; imageUrl: string | null }>
+	menuItems: Array<{ id: number; name: string; imageUrl: string | null }>
+	cars: Array<{ id: number; brand: string; price: number; imageUrl: string | null }>
+	karnaySurnay: Array<{ id: number; isAvailable: boolean; price: number }>
+	availability: VenueAvailabilityResponse
+}
+
+export interface VenueBookingCalendarResponse {
+	bookingId: number
+	bookingDate: string
+	customerName: string
+	customerPhone: string
+	guestCount: number
+	status: 'upcoming' | 'completed' | 'cancelled'
 }

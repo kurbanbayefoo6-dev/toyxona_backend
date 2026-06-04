@@ -1,3 +1,5 @@
+import { Resend } from 'resend'
+
 export interface EmailOptions {
 	to: string
 	subject: string
@@ -10,13 +12,32 @@ export interface SendOtpEmailOptions {
 	otpCode: string
 }
 
+const resendApiKey = process.env.RESEND_API_KEY
+
+if (!resendApiKey) {
+	console.warn('RESEND_API_KEY is not configured. Email sending will fail.')
+}
+
+const resend = resendApiKey ? new Resend(resendApiKey) : null
+
 export const sendEmail = async (options: EmailOptions): Promise<void> => {
-	console.log('=== MOCK EMAIL SERVICE ===')
-	console.log(`To: ${options.to}`)
-	console.log(`Subject: ${options.subject}`)
-	console.log(`Text: ${options.text}`)
-	console.log(`HTML: ${options.html}`)
-	console.log('========================')
+	if (!resend) {
+		console.error('Resend is not configured. Cannot send email.')
+		throw new Error('Email service not configured')
+	}
+
+	try {
+		await resend.emails.send({
+			from: 'Toyxona <onboarding@resend.dev>',
+			to: options.to,
+			subject: options.subject,
+			text: options.text || '',
+			html: options.html || undefined,
+		})
+	} catch (error) {
+		console.error('Failed to send email:', error)
+		throw new Error('Failed to send email')
+	}
 }
 
 export const sendOtpEmail = async (
@@ -35,7 +56,7 @@ export const sendPasswordResetEmail = async (
 	email: string,
 	resetToken: string,
 ): Promise<void> => {
-	const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
+	const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`
 	const emailText = `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nThis link will expire in 1 hour. If you did not request this, please ignore this email.`
 	
 	await sendEmail({

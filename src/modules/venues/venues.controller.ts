@@ -157,6 +157,65 @@ export class VenuesController {
 		}
 	}
 
+	public getVenueAvailability = async (
+		req: Request<{ id: string }>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> => {
+		try {
+			const venueId = Number(req.params.id)
+			if (Number.isNaN(venueId)) {
+				throw new AppError('Invalid venue id', 400)
+			}
+
+			const availability = await this.venuesService.getVenueAvailability(venueId)
+			sendSuccess(res, 200, 'Venue availability fetched successfully', availability)
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public getVenueFull = async (
+		req: Request<{ id: string }>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> => {
+		try {
+			const venueId = Number(req.params.id)
+			if (Number.isNaN(venueId)) {
+				throw new AppError('Invalid venue id', 400)
+			}
+
+			const venueFull = await this.venuesService.getVenueFull(venueId)
+			sendSuccess(res, 200, 'Venue full details fetched successfully', venueFull)
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public getVenueBookingCalendar = async (
+		req: Request<{ id: string }>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> => {
+		try {
+			const user = getUserFromRequest(req)
+			const venueId = Number(req.params.id)
+			if (Number.isNaN(venueId)) {
+				throw new AppError('Invalid venue id', 400)
+			}
+
+			const calendar = await this.venuesService.getVenueBookingCalendar(
+				venueId,
+				user?.role,
+				user?.id,
+			)
+			sendSuccess(res, 200, 'Venue booking calendar fetched successfully', calendar)
+		} catch (error) {
+			next(error)
+		}
+	}
+
 	private parseFilters(query: Request['query']): VenueFilters {
 		const toNumber = (value: unknown): number | undefined => {
 			if (value === undefined) return undefined
@@ -172,6 +231,8 @@ export class VenuesController {
 			search: typeof query.search === 'string' ? query.search : undefined,
 			page: toNumber(query.page),
 			limit: toNumber(query.limit),
+			sortBy: typeof query.sortBy === 'string' ? query.sortBy : undefined,
+			sortOrder: (query.sortOrder === 'asc' || query.sortOrder === 'desc') ? query.sortOrder : undefined,
 		}
 	}
 }

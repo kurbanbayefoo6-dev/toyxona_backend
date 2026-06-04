@@ -6,8 +6,11 @@ import {
 	SafeVenue,
 	UpdateVenueRequestBody,
 	UpdateVenueStatusRequestBody,
+	VenueAvailabilityResponse,
+	VenueBookingCalendarResponse,
 	VenueEntity,
 	VenueFilters,
+	VenueFullResponse,
 } from './venues.types'
 
 export class VenuesService {
@@ -139,6 +142,69 @@ export class VenuesService {
 		}
 
 		return this.toSafeVenue(updatedVenue)
+	}
+
+	public async getVenueAvailability(
+		venueId: number,
+	): Promise<VenueAvailabilityResponse> {
+		const venue = await this.venuesRepository.findById(venueId)
+		if (!venue) {
+			throw new AppError('Venue not found', 404)
+		}
+
+		return this.venuesRepository.getVenueAvailability(venueId)
+	}
+
+	public async getVenueFull(
+		venueId: number,
+	): Promise<VenueFullResponse> {
+		const venue = await this.venuesRepository.findById(venueId)
+		if (!venue) {
+			throw new AppError('Venue not found', 404)
+		}
+
+		const availability = await this.venuesRepository.getVenueAvailability(venueId)
+
+		// Get venue images
+		const images = await this.venuesRepository.getVenueImages(venueId)
+
+		// Get singers, menu items, cars, karnay surnay
+		const singers = await this.venuesRepository.getVenueSingers(venueId)
+		const menuItems = await this.venuesRepository.getVenueMenuItems(venueId)
+		const cars = await this.venuesRepository.getVenueCars(venueId)
+		const karnaySurnay = await this.venuesRepository.getVenueKarnaySurnay(venueId)
+
+		return {
+			venue: this.toSafeVenue(venue),
+			images,
+			singers,
+			menuItems,
+			cars,
+			karnaySurnay,
+			availability,
+		}
+	}
+
+	public async getVenueBookingCalendar(
+		venueId: number,
+		userRole: 'admin' | 'owner' | 'customer' | undefined,
+		userId: number | undefined,
+	): Promise<VenueBookingCalendarResponse[]> {
+		const venue = await this.venuesRepository.findById(venueId)
+		if (!venue) {
+			throw new AppError('Venue not found', 404)
+		}
+
+		// Only owner and admin can see booking calendar
+		if (userRole === 'customer') {
+			throw new AppError('Forbidden', 403)
+		}
+
+		if (userRole === 'owner' && venue.owner_id !== userId) {
+			throw new AppError('Forbidden', 403)
+		}
+
+		return this.venuesRepository.getVenueBookingCalendar(venueId)
 	}
 
 	private ensureCanManageVenue(

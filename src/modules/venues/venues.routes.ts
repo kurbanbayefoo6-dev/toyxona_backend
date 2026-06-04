@@ -15,6 +15,9 @@ const venuesController = new VenuesController(venuesService)
 
 router.get('/', venuesController.getVenues)
 router.get('/:id', validateIdParam(), venuesController.getVenueById)
+router.get('/:id/availability', validateIdParam(), venuesController.getVenueAvailability)
+router.get('/:id/full', validateIdParam(), venuesController.getVenueFull)
+router.get('/:id/bookings-calendar', validateIdParam(), authenticate, authorize('owner', 'admin'), venuesController.getVenueBookingCalendar)
 router.post(
 	'/',
 	authenticate,
