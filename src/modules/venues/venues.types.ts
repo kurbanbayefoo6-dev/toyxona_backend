@@ -14,6 +14,12 @@ export interface VenueEntity {
 	created_at: Date
 }
 
+export interface SafeVenueImage {
+	id: number
+	venueId: number
+	imageUrl: string
+}
+
 export interface SafeVenue {
 	id: number
 	ownerId: number
@@ -25,9 +31,14 @@ export interface SafeVenue {
 	phone: string
 	status: VenueStatus
 	createdAt: Date
+	imageUrl: string | null
+	coverImage: string | null
+	image: string | null
+	images: SafeVenueImage[]
 }
 
 export interface CreateVenueRequestBody {
+	ownerId?: number
 	name: string
 	district: string
 	address: string
@@ -37,6 +48,7 @@ export interface CreateVenueRequestBody {
 }
 
 export interface UpdateVenueRequestBody {
+	ownerId?: number
 	name?: string
 	district?: string
 	address?: string
@@ -77,7 +89,7 @@ export interface VenueAvailabilityResponse {
 
 export interface VenueFullResponse {
 	venue: SafeVenue
-	images: Array<{ id: number; imageUrl: string }>
+	images: SafeVenueImage[]
 	singers: Array<{ id: number; name: string; price: number; imageUrl: string | null }>
 	menuItems: Array<{ id: number; name: string; imageUrl: string | null }>
 	cars: Array<{ id: number; brand: string; price: number; imageUrl: string | null }>

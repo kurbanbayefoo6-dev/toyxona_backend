@@ -6,6 +6,7 @@ import {
 	SafeVenue,
 	UpdateVenueRequestBody,
 	UpdateVenueStatusRequestBody,
+	SafeVenueImage,
 	VenueAvailabilityResponse,
 	VenueBookingCalendarResponse,
 	VenueEntity,
@@ -26,7 +27,12 @@ export class VenuesService {
 		}
 
 		this.validateVenuePayload(payload)
-		const venue = await this.venuesRepository.createVenue(ownerId, payload)
+		const assignedOwnerId =
+			role === 'admin' && payload.ownerId ? Number(payload.ownerId) : ownerId
+		const venue = await this.venuesRepository.createVenue(
+			assignedOwnerId,
+			payload,
+		)
 		return this.toSafeVenue(venue)
 	}
 
@@ -42,9 +48,15 @@ export class VenuesService {
 		)
 		const page = filters.page && filters.page > 0 ? filters.page : 1
 		const limit = filters.limit && filters.limit > 0 ? filters.limit : 10
+		const imagesByVenueId =
+			await this.venuesRepository.getVenueImagesByVenueIds(
+				result.items.map(item => item.id),
+			)
 
 		return {
-			items: result.items.map(item => this.toSafeVenue(item)),
+			items: result.items.map(item =>
+				this.toSafeVenue(item, imagesByVenueId.get(item.id) ?? []),
+			),
 			total: result.total,
 			page,
 			limit,
@@ -63,18 +75,18 @@ export class VenuesService {
 		}
 
 		if (userRole === 'admin') {
-			return this.toSafeVenue(venue)
+			return this.toSafeVenueWithImages(venue)
 		}
 
 		if (userRole === 'owner' && userId === venue.owner_id) {
-			return this.toSafeVenue(venue)
+			return this.toSafeVenueWithImages(venue)
 		}
 
 		if (venue.status !== 'approved') {
 			throw new AppError('Venue not found', 404)
 		}
 
-		return this.toSafeVenue(venue)
+		return this.toSafeVenueWithImages(venue)
 	}
 
 	public async updateVenue(
@@ -90,6 +102,9 @@ export class VenuesService {
 
 		this.ensureCanManageVenue(userRole, userId, venue)
 		this.validateVenueUpdatePayload(payload)
+		if (userRole !== 'admin' && payload.ownerId !== undefined) {
+			throw new AppError('Only admin can assign owner', 403)
+		}
 
 		const updatedVenue = await this.venuesRepository.updateVenue(
 			venueId,
@@ -99,7 +114,7 @@ export class VenuesService {
 			throw new AppError('Venue not found', 404)
 		}
 
-		return this.toSafeVenue(updatedVenue)
+		return this.toSafeVenueWithImages(updatedVenue)
 	}
 
 	public async deleteVenue(
@@ -141,7 +156,7 @@ export class VenuesService {
 			throw new AppError('Venue not found', 404)
 		}
 
-		return this.toSafeVenue(updatedVenue)
+		return this.toSafeVenueWithImages(updatedVenue)
 	}
 
 	public async getVenueAvailability(
@@ -175,7 +190,7 @@ export class VenuesService {
 		const karnaySurnay = await this.venuesRepository.getVenueKarnaySurnay(venueId)
 
 		return {
-			venue: this.toSafeVenue(venue),
+			venue: this.toSafeVenue(venue, images),
 			images,
 			singers,
 			menuItems,
@@ -243,7 +258,17 @@ export class VenuesService {
 		}
 	}
 
-	private toSafeVenue(venue: VenueEntity): SafeVenue {
+	private async toSafeVenueWithImages(venue: VenueEntity): Promise<SafeVenue> {
+		const images = await this.venuesRepository.getVenueImages(venue.id)
+		return this.toSafeVenue(venue, images)
+	}
+
+	private toSafeVenue(
+		venue: VenueEntity,
+		images: SafeVenueImage[] = [],
+	): SafeVenue {
+		const imageUrl = images[0]?.imageUrl ?? null
+
 		return {
 			id: venue.id,
 			ownerId: venue.owner_id,
@@ -255,6 +280,10 @@ export class VenuesService {
 			phone: venue.phone,
 			status: venue.status,
 			createdAt: venue.created_at,
+			imageUrl,
+			coverImage: imageUrl,
+			image: imageUrl,
+			images,
 		}
 	}
 }

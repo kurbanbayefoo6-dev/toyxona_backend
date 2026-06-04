@@ -6,6 +6,7 @@ import { getUserFromRequest } from '../../utils/request'
 import { UsersService } from './users.service'
 import {
 	ChangePasswordRequestBody,
+	CreateUserByAdminRequestBody,
 	UpdateSelfRequestBody,
 	UpdateUserByAdminRequestBody,
 } from './users.types'
@@ -44,6 +45,27 @@ export class UsersController {
 
 			const users = await this.usersService.getAllUsers(user.role)
 			sendSuccess(res, 200, 'Users fetched', users)
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public createByAdmin = async (
+		req: Request<unknown, unknown, CreateUserByAdminRequestBody>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> => {
+		try {
+			const user = getUserFromRequest(req)
+			if (!user) {
+				throw new AppError('Unauthorized', 401)
+			}
+
+			const createdUser = await this.usersService.createByAdmin(
+				user.role,
+				req.body,
+			)
+			sendSuccess(res, 201, 'User created by admin', createdUser)
 		} catch (error) {
 			next(error)
 		}

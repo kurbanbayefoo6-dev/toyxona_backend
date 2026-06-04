@@ -177,6 +177,11 @@ export class VenuesRepository {
 			values.push(payload.name)
 			index += 1
 		}
+		if (payload.ownerId !== undefined) {
+			fields.push(`owner_id = $${index}`)
+			values.push(payload.ownerId)
+			index += 1
+		}
 		if (payload.district !== undefined) {
 			fields.push(`district = $${index}`)
 			values.push(payload.district)
@@ -318,6 +323,36 @@ export class VenuesRepository {
 			[venueId],
 		)
 		return result.rows.map(row => ({ id: row.id, imageUrl: row.image_url }))
+	}
+
+	public async getVenueImagesByVenueIds(
+		venueIds: number[],
+	): Promise<Map<number, Array<{ id: number; venueId: number; imageUrl: string }>>> {
+		const map = new Map<number, Array<{ id: number; venueId: number; imageUrl: string }>>()
+		if (venueIds.length === 0) {
+			return map
+		}
+
+		const result = await pool.query<{
+			id: number
+			venue_id: number
+			image_url: string
+		}>(
+			'SELECT id, venue_id, image_url FROM venue_images WHERE venue_id = ANY($1::int[]) ORDER BY id DESC',
+			[venueIds],
+		)
+
+		result.rows.forEach(row => {
+			const images = map.get(row.venue_id) ?? []
+			images.push({
+				id: row.id,
+				venueId: row.venue_id,
+				imageUrl: row.image_url,
+			})
+			map.set(row.venue_id, images)
+		})
+
+		return map
 	}
 
 	public async getVenueSingers(venueId: number): Promise<Array<{ id: number; name: string; price: number; imageUrl: string | null }>> {

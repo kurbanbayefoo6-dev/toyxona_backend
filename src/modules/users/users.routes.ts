@@ -17,6 +17,7 @@ router.use(authenticate)
 
 router.get('/me', usersController.getMe)
 router.get('/', authorize('admin'), usersController.getUsers)
+router.post('/', authorize('admin'), usersController.createByAdmin)
 router.patch('/', usersController.updateMe)
 router.delete('/', usersController.deleteMe)
 router.post('/change-password', usersController.changePassword)

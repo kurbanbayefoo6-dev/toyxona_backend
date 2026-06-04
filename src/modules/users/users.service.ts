@@ -3,6 +3,7 @@ import { comparePassword, hashPassword } from '../../utils/bcrypt'
 import { UsersRepository } from './users.repository'
 import {
 	ChangePasswordRequestBody,
+	CreateUserByAdminRequestBody,
 	SafeUser,
 	UpdateSelfRequestBody,
 	UpdateUserByAdminRequestBody,
@@ -29,6 +30,47 @@ export class UsersService {
 
 		const users = await this.usersRepository.listAll()
 		return users.map(user => this.toSafeUser(user))
+	}
+
+	public async createByAdmin(
+		requesterRole: UserRole,
+		payload: CreateUserByAdminRequestBody,
+	): Promise<SafeUser> {
+		if (requesterRole !== 'admin') {
+			throw new AppError('Forbidden', 403)
+		}
+
+		const required = [
+			payload.firstName,
+			payload.lastName,
+			payload.username,
+			payload.email,
+			payload.password,
+			payload.role,
+		]
+		if (required.some(value => !value || value.trim().length === 0)) {
+			throw new AppError('All fields are required', 400)
+		}
+		if (!['admin', 'owner', 'customer'].includes(payload.role)) {
+			throw new AppError('Invalid role', 400)
+		}
+		if (payload.password.length < 6) {
+			throw new AppError('Password must be at least 6 characters', 400)
+		}
+
+		const [existingEmail, existingUsername] = await Promise.all([
+			this.usersRepository.findByEmail(payload.email),
+			this.usersRepository.findByUsername(payload.username),
+		])
+		if (existingEmail) throw new AppError('Email already exists', 409)
+		if (existingUsername) throw new AppError('Username already exists', 409)
+
+		const passwordHash = await hashPassword(payload.password)
+		const user = await this.usersRepository.createByAdmin(
+			payload,
+			passwordHash,
+		)
+		return this.toSafeUser(user)
 	}
 
 	public async updateMe(

@@ -38,6 +38,17 @@ export interface UpdateUserByAdminRequestBody {
 	isVerified?: boolean
 }
 
+export interface CreateUserByAdminRequestBody {
+	firstName: string
+	lastName: string
+	username: string
+	email: string
+	phone?: string
+	password: string
+	role: UserRole
+	isVerified?: boolean
+}
+
 export interface ChangePasswordRequestBody {
 	currentPassword: string
 	newPassword: string

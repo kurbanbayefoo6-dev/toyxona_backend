@@ -2,6 +2,7 @@ import { QueryResult } from 'pg'
 
 import { pool } from '../../config/db'
 import {
+	CreateUserByAdminRequestBody,
 	UpdateSelfRequestBody,
 	UpdateUserByAdminRequestBody,
 	UserEntity,
@@ -41,6 +42,44 @@ export class UsersRepository {
 
 		const result: QueryResult<UserEntity> = await pool.query(query)
 		return result.rows
+	}
+
+	public async findByEmail(email: string): Promise<UserEntity | null> {
+		const result: QueryResult<UserEntity> = await pool.query(
+			`SELECT ${USER_SELECT} FROM users WHERE email = $1 LIMIT 1`,
+			[email],
+		)
+		return result.rows[0] || null
+	}
+
+	public async findByUsername(username: string): Promise<UserEntity | null> {
+		const result: QueryResult<UserEntity> = await pool.query(
+			`SELECT ${USER_SELECT} FROM users WHERE username = $1 LIMIT 1`,
+			[username],
+		)
+		return result.rows[0] || null
+	}
+
+	public async createByAdmin(
+		payload: CreateUserByAdminRequestBody,
+		passwordHash: string,
+	): Promise<UserEntity> {
+		const result: QueryResult<UserEntity> = await pool.query(
+			`INSERT INTO users (first_name, last_name, username, email, phone, password_hash, role, is_verified)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			 RETURNING ${USER_SELECT}`,
+			[
+				payload.firstName,
+				payload.lastName,
+				payload.username,
+				payload.email,
+				payload.phone ?? '',
+				passwordHash,
+				payload.role,
+				payload.isVerified ?? true,
+			],
+		)
+		return result.rows[0]
 	}
 
 	public async updateSelf(
