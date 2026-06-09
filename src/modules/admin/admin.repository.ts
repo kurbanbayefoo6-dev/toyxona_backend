@@ -158,10 +158,30 @@ export class AdminRepository {
 		)
 		const listResult = await pool.query(
 			`
-			SELECT id, owner_id AS "ownerId", name, district, address, capacity, price_per_seat AS "pricePerSeat", phone, status, created_at AS "createdAt"
-			FROM venues
+			SELECT
+				v.id,
+				v.owner_id AS "ownerId",
+				v.name,
+				v.district,
+				v.address,
+				v.capacity,
+				v.price_per_seat AS "pricePerSeat",
+				v.phone,
+				v.status,
+				v.created_at AS "createdAt",
+				vi.image_url AS "imageUrl",
+				vi.image_url AS "coverImage",
+				vi.image_url AS "image"
+			FROM venues v
+			LEFT JOIN LATERAL (
+				SELECT image_url
+				FROM venue_images
+				WHERE venue_id = v.id
+				ORDER BY id DESC
+				LIMIT 1
+			) vi ON true
 			${whereClause}
-			ORDER BY ${sortBy} ${sortOrder}
+			ORDER BY v.${sortBy} ${sortOrder}
 			LIMIT $${index} OFFSET $${index + 1}
 			`,
 			[...values, limit, offset],
