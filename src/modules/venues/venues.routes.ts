@@ -5,6 +5,7 @@ import { Router } from 'express'
 import { authenticate } from '../../middleware/authenticate.middleware'
 
 import { authorize } from '../../middleware/authorize.middleware'
+import { optionalAuthenticate } from '../../middleware/optional-authenticate.middleware'
 
 import { validateIdParam } from '../../middleware/validate-params.middleware'
 
@@ -28,11 +29,11 @@ const venuesController = new VenuesController(venuesService)
 
 
 
-router.get('/', venuesController.getVenues)
+router.get('/', optionalAuthenticate, venuesController.getVenues)
 
-router.get('/:id', validateIdParam(), venuesController.getVenueById)
+router.get('/:id', optionalAuthenticate, validateIdParam(), venuesController.getVenueById)
 
-router.get('/:id/full', validateIdParam(), venuesController.getVenueFull)
+router.get('/:id/full', optionalAuthenticate, validateIdParam(), venuesController.getVenueFull)
 
 router.get(
 
