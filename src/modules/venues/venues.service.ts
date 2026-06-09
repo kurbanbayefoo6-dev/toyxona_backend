@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { isTashkentDistrict } from '../../constants/districts'
 import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
 import { mapToSafeVenue } from './venues.mapper'
 import { VenuesRepository } from './venues.repository'
@@ -261,12 +262,24 @@ export class VenuesService {
 		if (Number(payload.capacity) <= 0 || Number(payload.pricePerSeat) < 0) {
 			throw new AppError('Invalid venue numeric values', 400)
 		}
+		if (!isTashkentDistrict(payload.district)) {
+			throw new AppError('District must be a valid Tashkent district', 400)
+		}
 	}
 
 	private validateVenueUpdatePayload(payload: UpdateVenueRequestBody): void {
 		const hasAny = Object.values(payload).some(value => value !== undefined)
 		if (!hasAny) {
 			throw new AppError('At least one field is required', 400)
+		}
+		if (payload.district !== undefined && !isTashkentDistrict(payload.district)) {
+			throw new AppError('District must be a valid Tashkent district', 400)
+		}
+		if (
+			(payload.capacity !== undefined && Number(payload.capacity) <= 0) ||
+			(payload.pricePerSeat !== undefined && Number(payload.pricePerSeat) < 0)
+		) {
+			throw new AppError('Invalid venue numeric values', 400)
 		}
 	}
 

@@ -15,16 +15,18 @@ const pool = new Pool({
 })
 
 async function main() {
-	const migrationPath = path.join(
-		__dirname,
-		'..',
-		'database',
-		'migrations',
-		'001_missing_tables.sql',
-	)
-	const sql = fs.readFileSync(migrationPath, 'utf8')
+	const migrationsDir = path.join(__dirname, '..', 'database', 'migrations')
+	const migrationFiles = fs
+		.readdirSync(migrationsDir)
+		.filter(file => file.endsWith('.sql'))
+		.sort((a, b) => a.localeCompare(b))
 
-	await pool.query(sql)
+	for (const file of migrationFiles) {
+		const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+		await pool.query(sql)
+		console.log(`Applied migration: ${file}`)
+	}
+
 	console.log('Migrations applied successfully')
 }
 

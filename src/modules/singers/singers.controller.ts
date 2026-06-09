@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 
+import { uploadImageToCloudinary } from '../../config/cloudinary'
 import { AppError } from '../../middleware/error.middleware'
 import { sendSuccess } from '../../utils/response'
 import { getUserFromRequest } from '../../utils/request'
@@ -21,10 +22,13 @@ export class SingersController {
 			const user = getUserFromRequest(req)
 			if (!user) throw new AppError('Unauthorized', 401)
 			const role = user.role === 'admin' ? 'admin' : 'owner'
+			const imageUrl = req.file
+				? await uploadImageToCloudinary(req.file)
+				: req.body.imageUrl
 			const singer = await this.singersService.create(
 				user.id,
 				role,
-				req.body,
+				{ ...req.body, imageUrl },
 			)
 			sendSuccess(res, 201, 'Singer created successfully', singer)
 		} catch (error) {
@@ -79,11 +83,14 @@ export class SingersController {
 			const id = Number(req.params.id)
 			if (Number.isNaN(id)) throw new AppError('Invalid singer id', 400)
 			const role = user.role === 'admin' ? 'admin' : 'owner'
+			const imageUrl = req.file
+				? await uploadImageToCloudinary(req.file)
+				: req.body.imageUrl
 			const singer = await this.singersService.update(
 				user.id,
 				role,
 				id,
-				req.body,
+				{ ...req.body, imageUrl },
 			)
 			sendSuccess(res, 200, 'Singer updated successfully', singer)
 		} catch (error) {

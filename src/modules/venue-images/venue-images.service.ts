@@ -1,7 +1,8 @@
 import fs from 'fs/promises'
 
+import { deleteCloudinaryImageByUrl, uploadImageToCloudinary } from '../../config/cloudinary'
+import { resolveUploadFilePath } from '../../config/uploads'
 import { AppError } from '../../middleware/error.middleware'
-import { resolveUploadFilePath, toPublicUploadPath } from '../../config/uploads'
 import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
 import { VenuesRepository } from '../venues/venues.repository'
 import { VenueImagesRepository } from './venue-images.repository'
@@ -32,7 +33,7 @@ export class VenueImagesService {
 			throw new AppError('Forbidden', 403)
 		}
 
-		const imageUrl = toPublicUploadPath(file.path)
+		const imageUrl = await uploadImageToCloudinary(file)
 		const image = await this.venueImagesRepository.create(venueId, imageUrl)
 		return this.toSafeImage(image)
 	}
@@ -86,7 +87,10 @@ export class VenueImagesService {
 		const filePath = resolveUploadFilePath(image.image_url)
 		if (filePath) {
 			await fs.unlink(filePath).catch(() => undefined)
+			return
 		}
+
+		await deleteCloudinaryImageByUrl(image.image_url).catch(() => undefined)
 	}
 
 	private toSafeImage(image: VenueImageEntity): SafeVenueImage {

@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 
+import { uploadImageToCloudinary } from '../../config/cloudinary'
 import { AppError } from '../../middleware/error.middleware'
 import { sendSuccess } from '../../utils/response'
 import { getUserFromRequest } from '../../utils/request'
@@ -17,7 +18,13 @@ export class CarsController {
 			const user = getUserFromRequest(req)
 			if (!user) throw new AppError('Unauthorized', 401)
 			const role = user.role === 'admin' ? 'admin' : 'owner'
-			const car = await this.carsService.create(user.id, role, req.body)
+			const imageUrl = req.file
+				? await uploadImageToCloudinary(req.file)
+				: req.body.imageUrl
+			const car = await this.carsService.create(user.id, role, {
+				...req.body,
+				imageUrl,
+			})
 			sendSuccess(res, 201, 'Car created successfully', car)
 		} catch (error) {
 			next(error)
@@ -71,7 +78,13 @@ export class CarsController {
 			const id = Number(req.params.id)
 			if (Number.isNaN(id)) throw new AppError('Invalid car id', 400)
 			const role = user.role === 'admin' ? 'admin' : 'owner'
-			const car = await this.carsService.update(user.id, role, id, req.body)
+			const imageUrl = req.file
+				? await uploadImageToCloudinary(req.file)
+				: req.body.imageUrl
+			const car = await this.carsService.update(user.id, role, id, {
+				...req.body,
+				imageUrl,
+			})
 			sendSuccess(res, 200, 'Car updated successfully', car)
 		} catch (error) {
 			next(error)

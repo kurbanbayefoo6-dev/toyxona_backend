@@ -1,11 +1,9 @@
+import 'dotenv/config'
 import './types/express-request'
 
-import dotenv from 'dotenv'
 import app from './app'
 import { pool } from './config/db'
 import { ensureUploadsDir } from './config/uploads'
-
-dotenv.config()
 
 const PORT = Number(process.env.PORT || 5000)
 const HOST = process.env.HOST || '0.0.0.0'

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { upload } from '../../config/multer'
 import { authenticate } from '../../middleware/authenticate.middleware'
 import { authorize } from '../../middleware/authorize.middleware'
 import { validateIdParam } from '../../middleware/validate-params.middleware'
@@ -23,6 +24,7 @@ router.post(
 	'/',
 	authenticate,
 	authorize('owner', 'admin'),
+	upload.single('image'),
 	menuItemsController.create,
 )
 router.patch(
@@ -30,6 +32,7 @@ router.patch(
 	validateIdParam(),
 	authenticate,
 	authorize('owner', 'admin'),
+	upload.single('image'),
 	menuItemsController.update,
 )
 router.delete(

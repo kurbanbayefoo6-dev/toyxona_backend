@@ -42,6 +42,12 @@ export class BookingsService {
 		if (venue.status !== 'approved') {
 			throw new AppError('Venue is not approved', 400)
 		}
+		if (payload.guestCount > venue.capacity) {
+			throw new AppError(
+				`Guest count must not exceed venue capacity (${venue.capacity})`,
+				400,
+			)
+		}
 
 		const singerIds = this.uniqueIds(payload.singerIds)
 		const carIds = this.uniqueIds(payload.carIds)
@@ -198,6 +204,30 @@ export class BookingsService {
 		if (payload.guestCount <= 0) {
 			throw new AppError('guestCount must be greater than 0', 400)
 		}
+		if (!this.isValidDateOnly(payload.bookingDate)) {
+			throw new AppError('bookingDate must be a valid YYYY-MM-DD date', 400)
+		}
+		if (this.isPastDate(payload.bookingDate)) {
+			throw new AppError('Past date booking is not allowed', 400)
+		}
+	}
+
+	private isValidDateOnly(value: string): boolean {
+		if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+
+		const date = new Date(`${value}T00:00:00.000Z`)
+		return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value)
+	}
+
+	private isPastDate(value: string): boolean {
+		const today = new Date()
+		const todayKey = [
+			today.getFullYear(),
+			String(today.getMonth() + 1).padStart(2, '0'),
+			String(today.getDate()).padStart(2, '0'),
+		].join('-')
+
+		return value < todayKey
 	}
 
 	private uniqueIds(ids?: number[]): number[] {
