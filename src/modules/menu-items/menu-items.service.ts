@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { idsEqual } from '../../utils/coerceId'
 import { VenuesRepository } from '../venues/venues.repository'
 import { MenuItemsRepository } from './menu-items.repository'
 import {
@@ -26,7 +27,7 @@ export class MenuItemsService {
 		if (!venue) {
 			throw new AppError('Venue not found', 404)
 		}
-		if (role === 'owner' && venue.owner_id !== userId) {
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 
@@ -47,7 +48,7 @@ export class MenuItemsService {
 			if (!userRole && venue.status !== 'approved') {
 				throw new AppError('Venue not found', 404)
 			}
-			if (userRole === 'owner' && venue.owner_id !== userId) {
+			if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 				throw new AppError('Forbidden', 403)
 			}
 			const items = await this.menuItemsRepository.listByVenueIds([venueId])
@@ -92,7 +93,7 @@ export class MenuItemsService {
 		if (!venue) {
 			throw new AppError('Venue not found', 404)
 		}
-		if (role === 'owner' && venue.owner_id !== userId) {
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 		const updated = await this.menuItemsRepository.update(id, payload)
@@ -115,7 +116,7 @@ export class MenuItemsService {
 		if (!venue) {
 			throw new AppError('Venue not found', 404)
 		}
-		if (role === 'owner' && venue.owner_id !== userId) {
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 		const deleted = await this.menuItemsRepository.delete(id)
@@ -143,7 +144,7 @@ export class MenuItemsService {
 		if (!userRole && venue.status !== 'approved') {
 			throw new AppError('Menu item not found', 404)
 		}
-		if (userRole === 'owner' && venue.owner_id !== userId) {
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 		return this.toSafe(item)

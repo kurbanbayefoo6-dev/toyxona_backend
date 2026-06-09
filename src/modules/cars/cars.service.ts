@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { idsEqual } from '../../utils/coerceId'
 import { VenuesRepository } from '../venues/venues.repository'
 import { CarsRepository } from './cars.repository'
 import {
@@ -22,7 +23,7 @@ export class CarsService {
 			throw new AppError('Venue id, brand and price are required', 400)
 		const venue = await this.venuesRepository.findById(payload.venueId)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const car = await this.carsRepository.create(payload)
 		return this.toSafe(car)
@@ -37,7 +38,7 @@ export class CarsService {
 			if (!venue) throw new AppError('Venue not found', 404)
 			if (!userRole && venue.status !== 'approved')
 				throw new AppError('Venue not found', 404)
-			if (userRole === 'owner' && venue.owner_id !== userId)
+			if (userRole === 'owner' && !idsEqual(venue.owner_id, userId))
 				throw new AppError('Forbidden', 403)
 			return (await this.carsRepository.listByVenueIds([venueId])).map(car =>
 				this.toSafe(car),
@@ -79,7 +80,7 @@ export class CarsService {
 		if (!venue) throw new AppError('Venue not found', 404)
 		if (!userRole && venue.status !== 'approved')
 			throw new AppError('Car not found', 404)
-		if (userRole === 'owner' && venue.owner_id !== userId)
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		return this.toSafe(car)
 	}
@@ -93,7 +94,7 @@ export class CarsService {
 		if (!car) throw new AppError('Car not found', 404)
 		const venue = await this.venuesRepository.findById(car.venue_id)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const updated = await this.carsRepository.update(id, payload)
 		if (!updated) throw new AppError('Car not found', 404)
@@ -108,7 +109,7 @@ export class CarsService {
 		if (!car) throw new AppError('Car not found', 404)
 		const venue = await this.venuesRepository.findById(car.venue_id)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const deleted = await this.carsRepository.delete(id)
 		if (!deleted) throw new AppError('Car not found', 404)

@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { idsEqual } from '../../utils/coerceId'
 import { VenuesRepository } from '../venues/venues.repository'
 import { KarnaySurnayRepository } from './karnay-surnay.repository'
 import {
@@ -21,7 +22,7 @@ export class KarnaySurnayService {
 		if (!payload.venueId) throw new AppError('Venue id is required', 400)
 		const venue = await this.venuesRepository.findById(payload.venueId)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const item = await this.repository.create(payload)
 		return this.toSafe(item)
@@ -36,7 +37,7 @@ export class KarnaySurnayService {
 			if (!venue) throw new AppError('Venue not found', 404)
 			if (!userRole && venue.status !== 'approved')
 				throw new AppError('Venue not found', 404)
-			if (userRole === 'owner' && venue.owner_id !== userId)
+			if (userRole === 'owner' && !idsEqual(venue.owner_id, userId))
 				throw new AppError('Forbidden', 403)
 			return (await this.repository.listByVenueIds([venueId])).map(item =>
 				this.toSafe(item),
@@ -78,7 +79,7 @@ export class KarnaySurnayService {
 		if (!venue) throw new AppError('Venue not found', 404)
 		if (!userRole && venue.status !== 'approved')
 			throw new AppError('Item not found', 404)
-		if (userRole === 'owner' && venue.owner_id !== userId)
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		return this.toSafe(item)
 	}
@@ -92,7 +93,7 @@ export class KarnaySurnayService {
 		if (!item) throw new AppError('Item not found', 404)
 		const venue = await this.venuesRepository.findById(item.venue_id)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const updated = await this.repository.update(id, payload)
 		if (!updated) throw new AppError('Item not found', 404)
@@ -107,7 +108,7 @@ export class KarnaySurnayService {
 		if (!item) throw new AppError('Item not found', 404)
 		const venue = await this.venuesRepository.findById(item.venue_id)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const deleted = await this.repository.delete(id)
 		if (!deleted) throw new AppError('Item not found', 404)

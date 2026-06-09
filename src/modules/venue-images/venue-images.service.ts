@@ -3,6 +3,7 @@ import fs from 'fs/promises'
 import { deleteCloudinaryImageByUrl, uploadImageToCloudinary } from '../../config/cloudinary'
 import { resolveUploadFilePath } from '../../config/uploads'
 import { AppError } from '../../middleware/error.middleware'
+import { idsEqual } from '../../utils/coerceId'
 import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
 import { VenuesRepository } from '../venues/venues.repository'
 import { VenueImagesRepository } from './venue-images.repository'
@@ -29,7 +30,7 @@ export class VenueImagesService {
 			throw new AppError('Venue not found', 404)
 		}
 
-		if (userRole === 'owner' && venue.owner_id !== userId) {
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 
@@ -48,7 +49,7 @@ export class VenueImagesService {
 			throw new AppError('Venue not found', 404)
 		}
 
-		if (userRole === 'owner' && venue.owner_id !== userId) {
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 
@@ -75,7 +76,7 @@ export class VenueImagesService {
 			throw new AppError('Venue not found', 404)
 		}
 
-		if (userRole === 'owner' && venue.owner_id !== userId) {
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 

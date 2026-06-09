@@ -1,5 +1,6 @@
 import { AppError } from '../../middleware/error.middleware'
 import { isTashkentDistrict } from '../../constants/districts'
+import { idsEqual } from '../../utils/coerceId'
 import { normalizeStoredImageUrl } from '../../utils/normalizeImageUrl'
 import { mapToSafeVenue } from './venues.mapper'
 import { VenuesRepository } from './venues.repository'
@@ -80,7 +81,7 @@ export class VenuesService {
 			return this.toSafeVenueWithImages(venue)
 		}
 
-		if (userRole === 'owner' && userId === venue.owner_id) {
+		if (userRole === 'owner' && idsEqual(userId, venue.owner_id)) {
 			return this.toSafeVenueWithImages(venue)
 		}
 
@@ -228,7 +229,7 @@ export class VenuesService {
 			throw new AppError('Forbidden', 403)
 		}
 
-		if (userRole === 'owner' && venue.owner_id !== userId) {
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 
@@ -244,7 +245,7 @@ export class VenuesService {
 			return
 		}
 
-		if (venue.owner_id !== userId) {
+		if (!idsEqual(venue.owner_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 	}

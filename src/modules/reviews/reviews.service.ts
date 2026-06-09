@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { idsEqual } from '../../utils/coerceId'
 import { VenuesRepository } from '../venues/venues.repository'
 import { BookingsRepository } from '../bookings/bookings.repository'
 import { ReviewsRepository } from './reviews.repository'
@@ -75,7 +76,7 @@ export class ReviewsService {
 			throw new AppError('Review not found', 404)
 		}
 
-		if (review.user_id !== userId) {
+		if (!idsEqual(review.user_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 
@@ -92,7 +93,7 @@ export class ReviewsService {
 			throw new AppError('Review not found', 404)
 		}
 
-		if (review.user_id !== userId) {
+		if (!idsEqual(review.user_id, userId)) {
 			throw new AppError('Forbidden', 403)
 		}
 

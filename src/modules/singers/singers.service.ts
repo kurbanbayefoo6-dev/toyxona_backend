@@ -1,4 +1,5 @@
 import { AppError } from '../../middleware/error.middleware'
+import { idsEqual } from '../../utils/coerceId'
 import { VenuesRepository } from '../venues/venues.repository'
 import { SingersRepository } from './singers.repository'
 import {
@@ -22,7 +23,7 @@ export class SingersService {
 			throw new AppError('Venue id, name and price are required', 400)
 		const venue = await this.venuesRepository.findById(payload.venueId)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const singer = await this.singersRepository.create(payload)
 		return this.toSafe(singer)
@@ -38,7 +39,7 @@ export class SingersService {
 			if (!venue) throw new AppError('Venue not found', 404)
 			if (!userRole && venue.status !== 'approved')
 				throw new AppError('Venue not found', 404)
-			if (userRole === 'owner' && venue.owner_id !== userId)
+			if (userRole === 'owner' && !idsEqual(venue.owner_id, userId))
 				throw new AppError('Forbidden', 403)
 			const singers = await this.singersRepository.listByVenueIds([venueId])
 			return singers.map(singer => this.toSafe(singer))
@@ -77,7 +78,7 @@ export class SingersService {
 		if (!venue) throw new AppError('Venue not found', 404)
 		if (!userRole && venue.status !== 'approved')
 			throw new AppError('Singer not found', 404)
-		if (userRole === 'owner' && venue.owner_id !== userId)
+		if (userRole === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		return this.toSafe(singer)
 	}
@@ -92,7 +93,7 @@ export class SingersService {
 		if (!singer) throw new AppError('Singer not found', 404)
 		const venue = await this.venuesRepository.findById(singer.venue_id)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const updated = await this.singersRepository.update(id, payload)
 		if (!updated) throw new AppError('Singer not found', 404)
@@ -108,7 +109,7 @@ export class SingersService {
 		if (!singer) throw new AppError('Singer not found', 404)
 		const venue = await this.venuesRepository.findById(singer.venue_id)
 		if (!venue) throw new AppError('Venue not found', 404)
-		if (role === 'owner' && venue.owner_id !== userId)
+		if (role === 'owner' && !idsEqual(venue.owner_id, userId))
 			throw new AppError('Forbidden', 403)
 		const deleted = await this.singersRepository.delete(id)
 		if (!deleted) throw new AppError('Singer not found', 404)
